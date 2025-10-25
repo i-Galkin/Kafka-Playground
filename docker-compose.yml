@@ -1,4 +1,10 @@
-﻿services:
+﻿# ------------------------
+# Services
+# ------------------------ 
+services:
+    # ------------------------
+    # DB
+    # ------------------------
     postgres:
         image: postgres:15-alpine
         container_name: postgres_db
@@ -11,6 +17,27 @@
             - "5432:5432"
         volumes:
             - pgdata:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+    pgadmin:
+        image: dpage/pgadmin4
+        container_name: pgadmin_ui
+        restart: always
+        environment:
+            PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+            PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+        ports:
+            - "5050:80" 
+        depends_on:
+            - postgres
+
+    # ------------------------
+    # Kafka
+    # ------------------------
     zookeeper:
         image: confluentinc/cp-zookeeper:7.5.0
         environment:
@@ -20,6 +47,7 @@
             ZOOKEEPER_TICK_TIME: 2000 
         ports:
             - "2181:2181"
+
     kafka:
         image: confluentinc/cp-kafka:7.5.0
         depends_on:
@@ -66,6 +94,9 @@
           kafka: 
                 condition: service_healthy
 
+    # ------------------------
+    # Producer
+    # ------------------------
     producer:
         build:
             context: ./Producer
@@ -81,7 +112,9 @@
                 condition: service_healthy
         restart: on-failure
 
-    # Consumers    
+    # ------------------------
+    # Consumers
+    # ------------------------  
     consumer1:
         build:
             context: ./Consumer
@@ -93,6 +126,8 @@
             KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_BOOTSTRAP_SERVERS}
         depends_on:
             kafka: 
+                condition: service_healthy
+            postgres:
                 condition: service_healthy
         restart: on-failure
         container_name: consumer1
@@ -109,6 +144,8 @@
         depends_on:
             kafka: 
                 condition: service_healthy
+            postgres:
+                condition: service_healthy
         restart: on-failure
         container_name: consumer2
 
@@ -124,9 +161,14 @@
         depends_on:
             kafka: 
                 condition: service_healthy
+            postgres:
+                condition: service_healthy
         restart: on-failure
         container_name: consumer3
 
+# ------------------------
+# Volumes
+# ------------------------ 
 volumes:
     postgres_data:
         # driver for local mounting
