@@ -12,28 +12,35 @@ This project is a playground for experimenting with Apache Kafka using multiple 
 
 ### Prerequisites
 
-- [Docker](https://www.docker.com/get-started) and [Docker Compose](https://docs.docker.com/compose/)
+- [Docker](https://www.docker.com/get-started)
+- [Docker Compose](https://docs.docker.com/compose/)
 
 ### Running the Playground
 
 1. **Clone the repository:**
-2. **Start all services:**
+2. **Adjust configuration:**
+	* Create the `.env` file to change the configuration.
+3. **Start all services:**
 ```
 docker-compose up --build
 ```
 
-3. **Access Kafka UI:**
-   - Open [http://localhost:8080](http://localhost:8080) in your browser to view and manage Kafka topics, messages, and consumer groups.
-
-4. **Producer and Consumers:**
-   - Producer is available on port `5000`.
-   - Consumers are available on ports `5001`, `5002`, and `5003`.
+4. **Access the services:**
+   - **Kafka UI:** [http://localhost:8080](http://localhost:8080) — manage Kafka topics, messages, and consumer groups.
+   - **pgAdmin:** [http://localhost:5050](http://localhost:5050) — manage PostgreSQL databases.
+   - **Producer:** available on port `5000`.
+   - **Consumers:** available on ports `5001`, `5002`, and `5003`.
 
 ### Stopping the Playground
 
 To stop and remove all containers:
 ```
 docker-compose down
+```
+
+To also remove volumes (including PostgreSQL data):
+```
+docker-compose down -v
 ```
 
 ## License
