@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "Producer": {
+      "commandName": "Project"
+    },
+    "WSL": {
+      "commandName": "WSL2",
+      "distributionName": ""
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

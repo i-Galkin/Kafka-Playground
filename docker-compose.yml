@@ -1,0 +1,133 @@
+﻿services:
+    postgres:
+        image: postgres:15-alpine
+        container_name: postgres_db
+        restart: always
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+        ports:
+            - "5432:5432"
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+    zookeeper:
+        image: confluentinc/cp-zookeeper:7.5.0
+        environment:
+            # Port on which Zookeeper listens for connections from Kafka
+            ZOOKEEPER_CLIENT_PORT: 2181 
+            # Heartbeat
+            ZOOKEEPER_TICK_TIME: 2000 
+        ports:
+            - "2181:2181"
+    kafka:
+        image: confluentinc/cp-kafka:7.5.0
+        depends_on:
+            - zookeeper
+        ports:
+            - "${EXTERNAL_KAFKA_PORT}:${EXTERNAL_KAFKA_PORT}"
+        environment:
+            # Unique identifier of this broker in the cluster
+            KAFKA_BROKER_ID: 1 
+            # Zookeeper address for connection. zookeeper here is the service name in the network.
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 
+            # Define all types of connections (entry points) to kafka: <name:protocol>
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INNER:PLAINTEXT,EXTERNAL:PLAINTEXT
+            # Which real ports Kafka physically listens for connections on.
+            KAFKA_LISTENERS: INNER://${LISTENER_HOST_ALL}:${INTERNAL_KAFKA_PORT},EXTERNAL://${LISTENER_HOST_ALL}:${EXTERNAL_KAFKA_PORT}
+            # Which addresses Kafka reports to clients after connection
+            # ${KAFKA_HOST_INTERNAL}:${KAFKA_PORT_INTERNAL} - .net applications will connect here. {KAFKA_ADVERTISED_HOST}:${KAFKA_ADVERTISED_PORT} - from PC (not from network)
+            KAFKA_ADVERTISED_LISTENERS: INNER://${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT},EXTERNAL://${EXTERNAL_KAFKA_HOST}:${EXTERNAL_KAFKA_PORT}
+            # Which listener to use for communication between Kafka brokers (now it's 1, so doesn't matter).
+            KAFKA_INTER_BROKER_LISTENER_NAME: INNER
+            # Service topic __consumer_offsets stores consumer reading positions. How many replicas of this topic to create.
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1 
+            # Default number of partitions for created topics
+            KAFKA_NUM_PARTITIONS: 3
+        healthcheck:
+            test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/9092"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    kafka-ui:
+        image: provectuslabs/kafka-ui:latest
+        container_name: kafka-ui
+        ports:
+          - "8080:8080" # http://localhost:8080
+        restart: always
+        environment:
+          # Parameter KAFKA_CLUSTERS_0_NAME - Cluster name in UI
+          KAFKA_CLUSTERS_0_NAME: local-kafka-cluster
+          # Parameter KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS - Kafka broker address
+          # Uses internal address: service_name:port, which listens on INNER listener
+          KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: ${INTERNAL_BOOTSTRAP_SERVERS}
+        depends_on:
+          kafka: 
+                condition: service_healthy
+
+    producer:
+        build:
+            context: ./Producer
+            dockerfile: Dockerfile
+        ports:
+            - "5000:80"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+            # Broker address for connection from .NET applications. kafka - Kafka service name in docker-compose
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_BOOTSTRAP_SERVERS}
+        depends_on:
+            kafka: 
+                condition: service_healthy
+        restart: on-failure
+
+    # Consumers    
+    consumer1:
+        build:
+            context: ./Consumer
+            dockerfile: Dockerfile
+        ports:
+            - "5001:80"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_BOOTSTRAP_SERVERS}
+        depends_on:
+            kafka: 
+                condition: service_healthy
+        restart: on-failure
+        container_name: consumer1
+
+    consumer2:
+        build:
+            context: ./Consumer
+            dockerfile: Dockerfile
+        ports:
+            - "5002:80"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_BOOTSTRAP_SERVERS}
+        depends_on:
+            kafka: 
+                condition: service_healthy
+        restart: on-failure
+        container_name: consumer2
+
+    consumer3:
+        build:
+            context: ./Consumer
+            dockerfile: Dockerfile
+        ports:
+            - "5003:80"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_BOOTSTRAP_SERVERS}
+        depends_on:
+            kafka: 
+                condition: service_healthy
+        restart: on-failure
+        container_name: consumer3
+
+volumes:
+    postgres_data:
+        # driver for local mounting
+        driver: local
