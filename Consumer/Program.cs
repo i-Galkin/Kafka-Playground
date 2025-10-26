@@ -1,12 +1,17 @@
 ﻿using Confluent.Kafka;
+using Consumer.Configurations;
+using Consumer.Data;
+using Consumer.Data.Models;
 using Consumer.Deserializers;
-using Producer;
+using Consumer.Messages;
+using Consumer.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Consumer
 {
-    internal class Program
+    public class Program
     {
-        static async Task Main(string[] args)
+        private static async Task Main()
         {
             var consumerName = Environment.MachineName;
             Console.WriteLine($"[{consumerName}] ========================================");
@@ -29,16 +34,34 @@ namespace Consumer
                 // IsolationLevel = IsolationLevel.ReadCommitted,
             };
 
+            DbContextFactory.Initialize(PostgreConfiguration.GetConnectionString());
+
+            Console.WriteLine($"[{consumerName}] Applying database migrations...");
+            using (var dbContext = DbContextFactory.Create())
+            {
+                try
+                {
+                    dbContext.Database.Migrate();
+                    Console.WriteLine($"[{consumerName}] Migrations applied successfully");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[{consumerName}] Failed to apply migrations: {ex.Message}");
+                    throw;
+                }
+            }
+
+
             Console.WriteLine($"[{consumerName}] Configs:");
             Console.WriteLine($"[{consumerName}]   BootstrapServers: {config.BootstrapServers}");
             Console.WriteLine($"[{consumerName}]   GroupId: {config.GroupId}");
 
-            IConsumer<string, Order> consumer = null;
+            IConsumer<string, OrderMessage> consumer = null;
             try
             {
                 Console.WriteLine($"[{consumerName}] Create Consumer...");
-                consumer = new ConsumerBuilder<string, Order>(config)
-                    .SetValueDeserializer(new JsonDeserializer<Order>())
+                consumer = new ConsumerBuilder<string, OrderMessage>(config)
+                    .SetValueDeserializer(new JsonDeserializer<OrderMessage>())
                     .SetErrorHandler((_, e) =>
                     {
                         Console.WriteLine($"[{consumerName}] Error: {e.Reason}");
@@ -70,19 +93,47 @@ namespace Consumer
                         var consumeResult = consumer.Consume(TimeSpan.FromSeconds(5));
                         if (consumeResult != null)
                         {
-                            var order = consumeResult.Message.Value;
-                            Console.WriteLine($"[{consumerName}] Received order: Id={order.OrderId}, CustomerId={order.CustomerId}," +
-                                $" Amount={order.Amount}, CreatedAt={order.CreatedAt}, Status={order.Status}");
+                            var orderMessage = consumeResult.Message.Value;
+                            Console.WriteLine($"[{consumerName}] Received order: Id={orderMessage.OrderId}, CustomerId={orderMessage.CustomerId}," +
+                                $" Amount={orderMessage.Amount}, CreatedAt={orderMessage.CreatedAt}, Status={orderMessage.Status}");
 
                             try
                             {
-                                Console.WriteLine($"[{consumerName}] Order {order.OrderId} processing...");
-                                await Task.Delay(1000);
-                                Console.WriteLine($"[{consumerName}] Order {order.OrderId} processed.");
+                                Console.WriteLine($"[{consumerName}] Order {orderMessage.OrderId} processing...");
+
+                                using var dbContext = DbContextFactory.Create();
+                                var existingOrder = await dbContext.Orders.FirstOrDefaultAsync(o => o.OrderId == orderMessage.OrderId);
+                                if (existingOrder != null)
+                                {
+                                    Console.WriteLine($"[{consumerName}] Order #{orderMessage.OrderId} already exists in DB, skipping...");
+                                }
+                                else
+                                {
+                                    var orderEntity = new Order
+                                    {
+                                        OrderId = orderMessage.OrderId,
+                                        CustomerId = orderMessage.CustomerId,
+                                        Amount = orderMessage.Amount,
+                                        CreatedAt = orderMessage.CreatedAt,
+                                        Status = orderMessage.Status,
+                                        ProcessedAt = DateTime.UtcNow,
+                                        Partition = consumeResult.Partition.Value,
+                                        Offset = consumeResult.Offset.Value
+                                    };
+
+                                    dbContext.Orders.Add(orderEntity);
+                                    await dbContext.SaveChangesAsync();
+
+                                    Console.WriteLine($"[{consumerName}] Order #{orderMessage.OrderId} saved to database");
+                                }
+
+                                consumer.Commit(consumeResult);
+                                Console.WriteLine($"[{consumerName}] Offset committed");
+                                Console.WriteLine($"[{consumerName}] Order {orderMessage.OrderId} processed.");
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"[{consumerName}] Error processing order {order.OrderId}: {ex.Message}");
+                                Console.WriteLine($"[{consumerName}] Error processing order {orderMessage.OrderId}: {ex.Message}");
                             }
                         }
                         else

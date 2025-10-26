@@ -1,7 +1,6 @@
-﻿namespace Producer
+﻿namespace Consumer.Messages
 {
-    // TODO: Use shared library
-    public class Order
+    public class OrderMessage
     {
         public int OrderId { get; set; }
         public string CustomerId { get; set; }
