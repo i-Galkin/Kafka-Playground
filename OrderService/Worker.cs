@@ -4,22 +4,23 @@ namespace OrderService;
 
 public class Worker : BackgroundService
 {
-    private readonly IKafkaConsumer _kafkaConsumer;
     private readonly ILogger<Worker> _logger;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
-    public Worker(IKafkaConsumer kafkaConsumer, ILogger<Worker> logger)
+    public Worker(IServiceScopeFactory serviceScopeFactory, ILogger<Worker> logger)
     {
-        _kafkaConsumer = kafkaConsumer;
         _logger = logger;
     }
-
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Worker starting at: {Time}", DateTimeOffset.Now);
 
         try
         {
-            await _kafkaConsumer.StartAsync(cancellationToken);
+            using IServiceScope scope = _serviceScopeFactory.CreateScope();
+            var kafkaConsumer = scope.ServiceProvider.GetRequiredService<IKafkaConsumer>();
+
+            await kafkaConsumer.StartAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -32,7 +33,6 @@ public class Worker : BackgroundService
     {
         _logger.LogInformation("Worker stopping at: {Time}", DateTimeOffset.UtcNow);
 
-        await _kafkaConsumer.StopAsync(cancellationToken);
         await base.StopAsync(cancellationToken);
     }
 }

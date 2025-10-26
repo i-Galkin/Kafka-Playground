@@ -31,7 +31,7 @@ namespace OrderService.Extensions
                 where THandler : class, IMessageHandler<TKey, TMessage>
         {
             services.AddScoped<IMessageHandler<TKey, TMessage>, THandler>();
-            services.AddSingleton<IKafkaConsumer>(serviceProvider =>
+            services.AddScoped<IKafkaConsumer>(serviceProvider =>
             {
                 var kafkaSettings = serviceProvider.GetRequiredService<IOptions<KafkaSettings>>().Value;
                 var handler = serviceProvider.GetRequiredService<IMessageHandler<TKey, TMessage>>();
