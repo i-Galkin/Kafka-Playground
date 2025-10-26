@@ -8,57 +8,73 @@ services:
     postgres:
         image: postgres:15-alpine
         container_name: postgres_db
+        hostname: postgres_db
         restart: always
+        ports:
+            - "5432:5432"
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
-        ports:
-            - "5432:5432"
         volumes:
             - pgdata:/var/lib/postgresql/data
         healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+            test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
             interval: 5s
             timeout: 5s
             retries: 5
             start_period: 10s
+        networks:
+            - backend
     pgadmin:
         image: dpage/pgadmin4
         container_name: pgadmin_ui
+        hostname: pgadmin_ui
         restart: always
+        ports:
+            - "5050:80"
         environment:
             PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
             PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-        ports:
-            - "5050:80" 
         depends_on:
             - postgres
+        networks:
+            - backend
 
     # ------------------------
     # Kafka
     # ------------------------
     zookeeper:
         image: confluentinc/cp-zookeeper:7.5.0
-        environment:
-            # Port on which Zookeeper listens for connections from Kafka
-            ZOOKEEPER_CLIENT_PORT: 2181 
-            # Heartbeat
-            ZOOKEEPER_TICK_TIME: 2000 
+        container_name: zookeeper
+        hostname: zookeeper
         ports:
             - "2181:2181"
+        environment:
+            # Port on which Zookeeper listens for connections from Kafka
+            ZOOKEEPER_CLIENT_PORT: 2181
+            # Heartbeat
+            ZOOKEEPER_TICK_TIME: 2000
+        healthcheck:
+            test: [ "CMD", "nc", "-z", "localhost", "2181" ]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+        networks:
+            - backend
 
     kafka:
         image: confluentinc/cp-kafka:7.5.0
-        depends_on:
-            - zookeeper
+        container_name: kafka
+        hostname: kafka
         ports:
             - "${EXTERNAL_KAFKA_PORT}:${EXTERNAL_KAFKA_PORT}"
         environment:
             # Unique identifier of this broker in the cluster
-            KAFKA_BROKER_ID: 1 
+            KAFKA_BROKER_ID: 1
             # Zookeeper address for connection. zookeeper here is the service name in the network.
-            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
             # Define all types of connections (entry points) to kafka: <name:protocol>
             KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INNER:PLAINTEXT,EXTERNAL:PLAINTEXT
             # Which real ports Kafka physically listens for connections on.
@@ -69,30 +85,38 @@ services:
             # Which listener to use for communication between Kafka brokers (now it's 1, so doesn't matter).
             KAFKA_INTER_BROKER_LISTENER_NAME: INNER
             # Service topic __consumer_offsets stores consumer reading positions. How many replicas of this topic to create.
-            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1 
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
             # Default number of partitions for created topics
             KAFKA_NUM_PARTITIONS: 3
+        depends_on:
+            zookeeper:
+                condition: service_healthy
         healthcheck:
-            test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/9092"]
+            test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}" ]
             interval: 10s
             timeout: 5s
             retries: 5
+        networks:
+            - backend
 
     kafka-ui:
         image: provectuslabs/kafka-ui:latest
         container_name: kafka-ui
-        ports:
-          - "8080:8080" # http://localhost:8080
+        hostname: kafka-ui
         restart: always
+        ports:
+            - "8080:8080"
         environment:
-          # Parameter KAFKA_CLUSTERS_0_NAME - Cluster name in UI
-          KAFKA_CLUSTERS_0_NAME: local-kafka-cluster
-          # Parameter KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS - Kafka broker address
-          # Uses internal address: service_name:port, which listens on INNER listener
-          KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: ${INTERNAL_BOOTSTRAP_SERVERS}
+            # Parameter KAFKA_CLUSTERS_0_NAME - Cluster name in UI
+            KAFKA_CLUSTERS_0_NAME: local-kafka-cluster
+            # Parameter KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS - Kafka broker address
+            # Uses internal address: service_name:port, which listens on INNER listener
+            KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
         depends_on:
-          kafka: 
+            kafka:
                 condition: service_healthy
+        networks:
+            - backend
 
     # ------------------------
     # Producer
@@ -101,16 +125,20 @@ services:
         build:
             context: ./Producer
             dockerfile: Dockerfile
+        container_name: producer
+        hostname: producer
+        restart: on-failure
         ports:
             - "5000:80"
         environment:
             ASPNETCORE_ENVIRONMENT: Development
             # Broker address for connection from .NET applications. kafka - Kafka service name in docker-compose
-            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_BOOTSTRAP_SERVERS}
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
         depends_on:
-            kafka: 
+            kafka:
                 condition: service_healthy
-        restart: on-failure
+        networks:
+            - backend
 
     # ------------------------
     # Consumers
@@ -119,57 +147,72 @@ services:
         build:
             context: ./Consumer
             dockerfile: Dockerfile
+        container_name: consumer1
+        hostname: consumer1
+        restart: on-failure
         ports:
             - "5001:80"
         environment:
             ASPNETCORE_ENVIRONMENT: Development
-            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_BOOTSTRAP_SERVERS}
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
         depends_on:
-            kafka: 
+            kafka:
                 condition: service_healthy
             postgres:
                 condition: service_healthy
-        restart: on-failure
-        container_name: consumer1
+        networks:
+            - backend
 
     consumer2:
         build:
             context: ./Consumer
             dockerfile: Dockerfile
+        container_name: consumer2
+        hostname: consumer2
+        restart: on-failure
         ports:
             - "5002:80"
         environment:
             ASPNETCORE_ENVIRONMENT: Development
-            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_BOOTSTRAP_SERVERS}
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
         depends_on:
-            kafka: 
+            kafka:
                 condition: service_healthy
             postgres:
                 condition: service_healthy
-        restart: on-failure
-        container_name: consumer2
+        networks:
+            - backend
 
     consumer3:
         build:
             context: ./Consumer
             dockerfile: Dockerfile
+        container_name: consumer3
+        hostname: consumer3
+        restart: on-failure
         ports:
             - "5003:80"
         environment:
             ASPNETCORE_ENVIRONMENT: Development
-            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_BOOTSTRAP_SERVERS}
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
         depends_on:
-            kafka: 
+            kafka:
                 condition: service_healthy
             postgres:
                 condition: service_healthy
-        restart: on-failure
-        container_name: consumer3
+        networks:
+            - backend
 
 # ------------------------
 # Volumes
 # ------------------------ 
 volumes:
-    postgres_data:
-        # driver for local mounting
+    pgdata:
         driver: local
+
+# ------------------------
+# Networks
+# ------------------------ 
+networks:
+    backend:
+        driver: bridge
