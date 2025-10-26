@@ -1,10 +1,11 @@
-﻿using Confluent.Kafka;
+﻿using System.Text.Json;
+using Confluent.Kafka;
 using Consumer.Configurations;
 using Consumer.Data;
 using Consumer.Data.Models;
 using Consumer.Deserializers;
+using Consumer.Kafka;
 using Consumer.Messages;
-using Consumer.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Consumer
@@ -86,6 +87,7 @@ namespace Consumer
                 Console.WriteLine($"[{consumerName}] Successfuly subscribed, started listening");
                 Console.WriteLine($"[{consumerName}] ========================================");
 
+                var retryPolicy = new RetryPolicy(maxRetries: 3, initialDelay: TimeSpan.FromSeconds(2));
                 while (true)
                 {
                     try
@@ -97,18 +99,28 @@ namespace Consumer
                             Console.WriteLine($"[{consumerName}] Received order: Id={orderMessage.OrderId}, CustomerId={orderMessage.CustomerId}," +
                                 $" Amount={orderMessage.Amount}, CreatedAt={orderMessage.CreatedAt}, Status={orderMessage.Status}");
 
+                            bool shouldCommit = false;
                             try
                             {
-                                Console.WriteLine($"[{consumerName}] Order {orderMessage.OrderId} processing...");
+                                await retryPolicy.ExecuteAsync(async () =>
+                                {
+                                    Console.WriteLine($"[{consumerName}] Order {orderMessage.OrderId} processing...");
 
-                                using var dbContext = DbContextFactory.Create();
-                                var existingOrder = await dbContext.Orders.FirstOrDefaultAsync(o => o.OrderId == orderMessage.OrderId);
-                                if (existingOrder != null)
-                                {
-                                    Console.WriteLine($"[{consumerName}] Order #{orderMessage.OrderId} already exists in DB, skipping...");
-                                }
-                                else
-                                {
+                                    using var dbContext = DbContextFactory.Create();
+
+                                    var existingOrder = await dbContext.Orders.FirstOrDefaultAsync(o => o.OrderId == orderMessage.OrderId);
+                                    if (existingOrder != null)
+                                    {
+                                        Console.WriteLine($"[{consumerName}] Order #{orderMessage.OrderId} already exists in DB, skipping...");
+                                        return true;
+                                    }
+
+                                    // DLQ test
+                                    if (orderMessage.Amount <= 0)
+                                    {
+                                        throw new InvalidOperationException($"[{consumerName}] Order #{orderMessage.OrderId} Order amount must be positive");
+                                    }
+
                                     var orderEntity = new Order
                                     {
                                         OrderId = orderMessage.OrderId,
@@ -125,7 +137,12 @@ namespace Consumer
                                     await dbContext.SaveChangesAsync();
 
                                     Console.WriteLine($"[{consumerName}] Order #{orderMessage.OrderId} saved to database");
-                                }
+
+                                    return true;
+
+                                });
+
+                                shouldCommit = true;
 
                                 consumer.Commit(consumeResult);
                                 Console.WriteLine($"[{consumerName}] Offset committed");
@@ -133,12 +150,50 @@ namespace Consumer
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"[{consumerName}] Error processing order {orderMessage.OrderId}: {ex.Message}");
+                                Console.WriteLine($"[{consumerName}] Failed to process order after retries");
+                                Console.WriteLine($"[{consumerName}] Error: {ex.Message}");
+
+                                try
+                                {
+                                    using var dbContext = DbContextFactory.Create();
+
+                                    var failedMessage = new FailedOrderMessage
+                                    {
+                                        Topic = consumeResult.Topic,
+                                        Partition = consumeResult.Partition.Value,
+                                        Offset = consumeResult.Offset.Value,
+                                        Key = consumeResult.Message.Key,
+                                        Value = JsonSerializer.Serialize(orderMessage),
+                                        ErrorMessage = ex.Message,
+                                        StackTrace = ex.StackTrace,
+                                        RetryCount = 3, // Max retries reached
+                                        FailedAt = DateTime.UtcNow,
+                                        ConsumerName = consumerName
+                                    };
+
+                                    dbContext.FailedOrderMessages.Add(failedMessage);
+                                    await dbContext.SaveChangesAsync();
+
+                                    Console.WriteLine($"[{consumerName}] Message sent to DLQ");
+
+                                    shouldCommit = true;
+                                }
+                                catch (Exception dlqEx)
+                                {
+                                    Console.WriteLine($"[{consumerName}] Failed to save to DLQ: {dlqEx.Message}");
+                                    shouldCommit = false;
+                                }
+                            }
+
+                            if (shouldCommit)
+                            {
+                                consumer.Commit(consumeResult);
+                                Console.WriteLine($"[{consumerName}] Offset committed");
                             }
                         }
                         else
                         {
-                            Console.WriteLine($"[{consumerName}] no orders");
+                            Console.WriteLine($"[{consumerName}] Waiting for orders...");
                         }
                     }
                     catch (ConsumeException ex)

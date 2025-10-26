@@ -64,6 +64,27 @@ namespace Producer
 
                     await Task.Delay(2000);
                 }
+
+                foreach(var i in Enumerable.Range(100, 110))
+                {
+                    var invalidOrder = new Order
+                    {
+                        OrderId = i,
+                        CustomerId = "error-customer",
+                        Amount = -100m, // Invalid amount to simulate an error
+                        CreatedAt = DateTime.UtcNow,
+                        Status = "Invalid"
+                    };
+
+                    var message = new Message<string, Order>
+                    {
+                        Key = invalidOrder.CustomerId,
+                        Value = invalidOrder,
+                    };
+
+                    var result = await producer.ProduceAsync("test-topic", message);
+                    Console.WriteLine($"Sent invalid order (DLQ test)");
+                }
             }
             catch (ProduceException<string, string> ex)
             {
