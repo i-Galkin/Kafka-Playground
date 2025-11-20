@@ -4,9 +4,10 @@ This project is a playground for experimenting with Apache Kafka using multiple 
 
 ## Project Structure
 
-- `Producer` – .NET service for producing messages to Kafka.
-- `Consumer` – .NET service for consuming messages from Kafka.
-- `docker-compose.yml` – Orchestrates Kafka, Zookeeper, Kafka UI, Producer, and multiple Consumer containers.
+- `Producer` ï¿½ .NET service for producing messages to Kafka.
+- `Consumer` ï¿½ .NET console service for consuming messages from Kafka.
+- `OrderService` ï¿½ .NET web service for consuming messages to Kafka. The revamp of `Consumer` project
+- `docker-compose.yml` ï¿½ Orchestrates Kafka, Zookeeper, Kafka UI, Producer, and multiple Consumer containers.
 
 ## Getting Started
 
@@ -26,8 +27,8 @@ docker-compose up --build
 ```
 
 4. **Access the services:**
-   - **Kafka UI:** [http://localhost:8080](http://localhost:8080) — manage Kafka topics, messages, and consumer groups.
-   - **pgAdmin:** [http://localhost:5050](http://localhost:5050) — manage PostgreSQL databases.
+   - **Kafka UI:** [http://localhost:8080](http://localhost:8080) ï¿½ manage Kafka topics, messages, and consumer groups.
+   - **pgAdmin:** [http://localhost:5050](http://localhost:5050) ï¿½ manage PostgreSQL databases.
    - **Producer:** available on port `5000`.
    - **Consumers:** available on ports `5001`, `5002`, and `5003`.
 
