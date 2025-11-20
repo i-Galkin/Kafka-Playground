@@ -8,7 +8,15 @@ builder.Services
     .AddDatabase(builder.Configuration)
     .AddKafkaConsumers(builder.Configuration);
 
+    // TODO: Add healthcheck
+    // .AddHealthChecks().AddCheck("database", () =>
+    // {
+    //    return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy();
+    // });
+
 var host = builder.Build();
+
+// host.MapHealthChecks("/health");
 
 await host.MigrateDatabaseAsync();
 await host.RunAsync();

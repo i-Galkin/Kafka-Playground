@@ -2,8 +2,10 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using OrderService.Data.Postgres;
 using OrderService.Infrastructure.Database;
 
 #nullable disable
@@ -11,9 +13,11 @@ using OrderService.Infrastructure.Database;
 namespace OrderService.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251119194409_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -37,8 +41,8 @@ namespace OrderService.Infrastructure.Database.Migrations
                         .HasColumnName("consumer_name");
 
                     b.Property<string>("ErrorMessage")
-                        .HasMaxLength(2147483647)
-                        .HasColumnType("text")
+                        .HasMaxLength(2500)
+                        .HasColumnType("character varying(2500)")
                         .HasColumnName("error_message");
 
                     b.Property<DateTime>("FailedAt")
@@ -63,8 +67,8 @@ namespace OrderService.Infrastructure.Database.Migrations
                         .HasColumnName("retry_count");
 
                     b.Property<string>("StackTrace")
-                        .HasMaxLength(2147483647)
-                        .HasColumnType("text")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("stack_trace");
 
                     b.Property<string>("Topic")
@@ -73,8 +77,8 @@ namespace OrderService.Infrastructure.Database.Migrations
                         .HasColumnName("topic");
 
                     b.Property<string>("Value")
-                        .HasMaxLength(2147483647)
-                        .HasColumnType("text")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("value");
 
                     b.HasKey("Id");

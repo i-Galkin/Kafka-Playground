@@ -3,6 +3,7 @@ using System.Text.Json;
 using OrderService.Infrastructure.Database;
 using OrderService.Domain.Models;
 using OrderService.Applications.Services.Interfaces;
+using OrderService.Data.Postgres;
 
 namespace OrderService.Applications.Services
 {

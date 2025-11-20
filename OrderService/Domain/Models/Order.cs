@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 using OrderService.Domain.Enums;
 
 namespace OrderService.Domain.Models
@@ -37,6 +38,7 @@ namespace OrderService.Domain.Models
         /// Order Amount
         /// </summary>
         [Column("amount")]
+        [Precision(18, 2)]
         public decimal Amount { get; set; }
 
         /// <summary>

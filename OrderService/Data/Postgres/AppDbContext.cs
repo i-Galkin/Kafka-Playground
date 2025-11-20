@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OrderService.Domain.Models;
 
-namespace OrderService.Infrastructure.Database
+namespace OrderService.Data.Postgres
 {
     public class AppDbContext : DbContext
     {
@@ -22,6 +22,7 @@ namespace OrderService.Infrastructure.Database
 
             modelBuilder.Entity<Order>()
                 .HasIndex(o => o.CustomerId)
+                .IsUnique()
                 .HasDatabaseName("idx_orders_customer_id");
 
             modelBuilder.Entity<Order>()

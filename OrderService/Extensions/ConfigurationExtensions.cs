@@ -1,4 +1,5 @@
 ﻿using OrderService.Infrastructure.Configuration;
+using OrderService.Infrastructure.Configuration.Database;
 
 namespace OrderService.Extensions
 {
@@ -11,6 +12,9 @@ namespace OrderService.Extensions
 
             services.Configure<RetryPolicySettings>(
                 configuration.GetSection(RetryPolicySettings.SectionName));
+
+            services.Configure<DatabaseSettings>(
+                configuration.GetSection(DatabaseSettings.SectionName));
 
             return services;
         }

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using OrderService.Applications.Services.Interfaces;
 using OrderService.Applications.Validators.Interfaces;
+using OrderService.Data.Postgres;
 using OrderService.Domain.Enums;
 using OrderService.Domain.Messages;
 using OrderService.Domain.Models;
