@@ -3,17 +3,21 @@ using OrderService.Infrastructure.Kafka.Interfaces;
 
 namespace OrderService.Infrastructure.Kafka
 {
-    public class KafkaConsumer<TKey, TValue> : IKafkaConsumer
+    public class KafkaConsumer<TKey, TValue> : IHostedService
     {
         private readonly IConsumer<TKey, TValue> _consumer;
-        private readonly IMessageHandler<TKey, TValue> _messageHandler;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<KafkaConsumer<TKey, TValue>> _logger;
         private readonly string _topic;
 
-        public KafkaConsumer(IConsumer<TKey, TValue> consumer, IMessageHandler<TKey, TValue> messageHandler, string topic, ILogger<KafkaConsumer<TKey, TValue>> logger)
+        public KafkaConsumer(
+            IConsumer<TKey, TValue> consumer,
+            string topic,
+            ILogger<KafkaConsumer<TKey, TValue>> logger,
+            IServiceScopeFactory scopeFactory)
         {
             _consumer = consumer;
-            _messageHandler = messageHandler;
+            _scopeFactory = scopeFactory;
             _topic = topic;
             _logger = logger;
         }
@@ -37,7 +41,11 @@ namespace OrderService.Infrastructure.Kafka
                             continue;
                         }
 
-                        await _messageHandler.HandleAsync(consumeResult, cancellationToken);
+                        using (var scope = _scopeFactory.CreateScope())
+                        {
+                            var handler = scope.ServiceProvider.GetRequiredService<IMessageHandler<TKey, TValue>>();
+                            await handler.HandleAsync(consumeResult, cancellationToken);
+                        }
 
                         _consumer.Commit(consumeResult);
 

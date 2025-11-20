@@ -44,7 +44,7 @@ namespace Producer
 
                     var order = new Order
                     {
-                        OrderId = i,
+                        OrderId = Guid.NewGuid().ToString(),
                         CustomerId = customerId,
                         Amount = new Random().Next(100, 1000),
                         CreatedAt = DateTime.UtcNow,
@@ -69,7 +69,7 @@ namespace Producer
                 {
                     var invalidOrder = new Order
                     {
-                        OrderId = i,
+                        OrderId = Guid.NewGuid().ToString(),
                         CustomerId = "error-customer",
                         Amount = -100m, // Invalid amount to simulate an error
                         CreatedAt = DateTime.UtcNow,

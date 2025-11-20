@@ -10,7 +10,7 @@ namespace OrderService.Domain.Models
     public class FailedOrderMessage
     {
         /// <summary>
-        /// Identifier
+        /// Inner Order Identifier
         /// </summary>
         [Key]
         [Column("id")]
@@ -20,6 +20,7 @@ namespace OrderService.Domain.Models
         /// Kafka Topic
         /// </summary>
         [Column("topic")]
+        [MaxLength(255)]
         public string Topic { get; set; }
 
         /// <summary>
@@ -38,24 +39,28 @@ namespace OrderService.Domain.Models
         /// Message Key
         /// </summary>
         [Column("key")]
+        [MaxLength(255)]
         public string Key { get; set; }
 
         /// <summary>
         /// Message Value
         /// </summary>
         [Column("value")]
+        [MaxLength(int.MaxValue)]
         public string Value { get; set; }
 
         /// <summary>
         /// Error Message
         /// </summary>
         [Column("error_message")]
+        [MaxLength(int.MaxValue)]
         public string ErrorMessage { get; set; }
 
         /// <summary>
         /// Stack Trace
         /// </summary>
         [Column("stack_trace")]
+        [MaxLength(int.MaxValue)]
         public string StackTrace { get; set; }
 
         /// <summary>
@@ -74,6 +79,7 @@ namespace OrderService.Domain.Models
         /// Consumer Name
         /// </summary>
         [Column("consumer_name")]
+        [MaxLength(255)]
         public string ConsumerName { get; set; }
     }
 }

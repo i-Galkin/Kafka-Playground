@@ -1,4 +1,3 @@
-using OrderService;
 using OrderService.Extensions;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -8,8 +7,6 @@ builder.Services
     .AddApplicationServices(builder.Configuration)
     .AddDatabase(builder.Configuration)
     .AddKafkaConsumers(builder.Configuration);
-
-builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
 

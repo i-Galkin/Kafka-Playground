@@ -13,16 +13,9 @@ namespace OrderService.Extensions
     {
         public static IServiceCollection AddKafkaConsumers(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddKafkaFactories();
+            services.AddSingleton(typeof(IKafkaConsumerFactory<,>), typeof(KafkaConsumerFactory<,>));
 
             services.AddKafkaConsumer<string, OrderMessage, OrderMessageHandler>("Orders");
-
-            return services;
-        }
-
-        private static IServiceCollection AddKafkaFactories(this IServiceCollection services)
-        {
-            services.AddSingleton(typeof(IKafkaConsumerFactory<,>), typeof(KafkaConsumerFactory<,>));
 
             return services;
         }
@@ -31,10 +24,11 @@ namespace OrderService.Extensions
                 where THandler : class, IMessageHandler<TKey, TMessage>
         {
             services.AddScoped<IMessageHandler<TKey, TMessage>, THandler>();
-            services.AddScoped<IKafkaConsumer>(serviceProvider =>
+
+            services.AddSingleton<IHostedService>(serviceProvider =>
             {
                 var kafkaSettings = serviceProvider.GetRequiredService<IOptions<KafkaSettings>>().Value;
-                var handler = serviceProvider.GetRequiredService<IMessageHandler<TKey, TMessage>>();
+                var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
                 var logger = serviceProvider.GetRequiredService<ILogger<KafkaConsumer<TKey, TMessage>>>();
                 var factory = serviceProvider.GetRequiredService<IKafkaConsumerFactory<TKey, TMessage>>();
 
@@ -43,6 +37,11 @@ namespace OrderService.Extensions
                 if (!kafkaSettings.Topics.TryGetValue(topicConfigurationKey, out var topicConfig))
                 {
                     throw new InvalidOperationException($"{topicConfigurationKey} topic is not configured");
+                }
+
+                if (!topicConfig.Enabled)
+                {
+                    throw new InvalidOperationException($"Topic '{topicConfigurationKey}' is not enabled");
                 }
 
                 var config = new ConsumerConfig
@@ -57,9 +56,9 @@ namespace OrderService.Extensions
 
                 return new KafkaConsumer<TKey, TMessage>(
                     consumer,
-                    handler,
                     topicConfig.Name,
-                    logger
+                    logger,
+                    scopeFactory
                 );
             });
 

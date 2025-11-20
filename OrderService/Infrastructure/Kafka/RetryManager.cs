@@ -29,7 +29,7 @@ namespace OrderService.Infrastructure.Kafka
                 {
                     attempt++;
 
-                    // Check if error is transient (retryable)
+                    // Check if error is retryable
                     var shouldRetry = isTransient?.Invoke(ex) ?? IsTransientError(ex);
                     if (!shouldRetry || attempt >= _maxRetries)
                     {
@@ -48,7 +48,6 @@ namespace OrderService.Infrastructure.Kafka
 
         private static bool IsTransientError(Exception ex)
         {
-            // Database transient errors
             if (ex.Message.Contains("timeout") ||
                 ex.Message.Contains("connection") ||
                 ex.Message.Contains("network") ||
@@ -57,10 +56,8 @@ namespace OrderService.Infrastructure.Kafka
                 return true;
             }
 
-            // Npgsql specific transient errors
             if (ex is Npgsql.NpgsqlException npgsqlEx)
             {
-                // Connection errors, timeouts
                 return npgsqlEx.IsTransient;
             }
 

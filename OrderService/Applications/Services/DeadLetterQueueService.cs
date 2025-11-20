@@ -35,7 +35,7 @@ namespace OrderService.Applications.Services
                     StackTrace = exception.StackTrace,
                     RetryCount = retryCount,
                     FailedAt = DateTime.UtcNow,
-                    ConsumerName = _consumerName
+                    ConsumerName = _consumerName,
                 };
 
                 _dbContext.FailedOrderMessages.Add(failedMessage);

@@ -13,16 +13,24 @@ namespace OrderService.Domain.Models
     public class Order
     {
         /// <summary>
-        /// Order Identifier
+        /// Order Inner Identifier
         /// </summary>
         [Key]
+        [Column("id")]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Order External Identifier
+        /// </summary>
         [Column("order_id")]
-        public int OrderId { get; set; }
+        [MaxLength(255)]
+        public string OrderId { get; set; }
 
         /// <summary>
         /// Customer Identifier
         /// </summary>
         [Column("customer_id")]
+        [MaxLength(255)]
         public string CustomerId { get; set; }
 
         /// <summary>
