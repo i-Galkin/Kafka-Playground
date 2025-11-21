@@ -12,11 +12,17 @@ namespace Consumer.Data.Models
     public class Order
     {
         /// <summary>
-        /// Order Identifier
+        /// Identifier
         /// </summary>
         [Key]
+        [Column("id")]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Order Identifier
+        /// </summary>
         [Column("order_id")]
-        public int OrderId { get; set; }
+        public string OrderId { get; set; }
 
         /// <summary>
         /// Customer Identifier

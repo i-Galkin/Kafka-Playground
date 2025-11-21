@@ -3,7 +3,7 @@
 # ------------------------ 
 services:
     # ------------------------
-    # DB
+    # Postgres
     # ------------------------
     postgres:
         image: postgres:15-alpine
@@ -17,7 +17,7 @@ services:
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
         volumes:
-            - pgdata:/var/lib/postgresql/data
+            - postgres_data:/var/lib/postgresql/data
         healthcheck:
             test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d postgres" ]
             interval: 5s
@@ -25,7 +25,7 @@ services:
             retries: 5
             start_period: 10s
         networks:
-            - backend
+            - shared
 
     pgweb:
         image: sosedoff/pgweb
@@ -39,7 +39,34 @@ services:
         depends_on:
           - postgres
         networks:
-          - backend
+          - shared
+
+  # ------------------------
+  # Cassandra
+  # ------------------------
+    cassandra:
+        image: cassandra:5.0
+        container_name: cassandra5
+        environment:
+            - CASSANDRA_CLUSTER_NAME=OrderCluster
+            - CASSANDRA_DC=datacenter1
+            - CASSANDRA_RACK=rack1
+            - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+            - CASSANDRA_NUM_TOKENS=256
+        ports:
+            - "9042:9042"  # CQL port
+            - "7199:7199"  # JMX port
+            - "9160:9160"  # Thrift port
+        volumes:
+            - cassandra_data:/var/lib/cassandra
+        healthcheck:
+          test: ["CMD-SHELL", "cqlsh -e 'describe cluster'"]
+          interval: 30s
+          timeout: 10s
+          retries: 10
+          start_period: 60s
+        networks:
+            - shared
 
     # ------------------------
     # Kafka
@@ -62,7 +89,10 @@ services:
             retries: 5
             start_period: 10s
         networks:
-            - backend
+            - shared
+        volumes:
+            - zookeeper_data:/var/lib/zookeeper/data
+            - zookeeper_logs:/var/lib/zookeeper/log
 
     kafka:
         image: confluentinc/cp-kafka:7.5.0
@@ -97,7 +127,9 @@ services:
             timeout: 5s
             retries: 5
         networks:
-            - backend
+            - shared
+        volumes:
+            - kafka_data:/var/lib/kafka/data
 
     kafka-ui:
         image: provectuslabs/kafka-ui:latest
@@ -116,118 +148,22 @@ services:
             kafka:
                 condition: service_healthy
         networks:
-            - backend
-
-    # ------------------------
-    # Producer
-    # ------------------------
-    producer:
-        build:
-            context: ./Producer
-            dockerfile: Dockerfile
-        container_name: producer5
-        hostname: producer5
-        restart: on-failure
-        ports:
-            - "5000:80"
-        environment:
-            ASPNETCORE_ENVIRONMENT: Development
-            # Broker address for connection from .NET applications. kafka - Kafka service name in docker-compose
-            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
-        depends_on:
-            kafka:
-                condition: service_healthy
-        networks:
-            - backend
-
-    # ------------------------
-    # Consumers
-    # ------------------------  
-    consumer1:
-        build:
-            context: ./Consumer
-            dockerfile: Dockerfile
-        container_name: consumer51
-        hostname: consumer51
-        restart: on-failure
-        ports:
-            - "5001:80"
-        environment:
-            ASPNETCORE_ENVIRONMENT: Development
-            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
-            POSTGRES_HOST: postgres
-            POSTGRES_PORT: 5432
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
-        depends_on:
-            kafka:
-                condition: service_healthy
-            postgres:
-                condition: service_healthy
-        networks:
-            - backend
-
-    consumer2:
-        build:
-            context: ./Consumer
-            dockerfile: Dockerfile
-        container_name: consumer52
-        hostname: consumer52
-        restart: on-failure
-        ports:
-            - "5002:80"
-        environment:
-            ASPNETCORE_ENVIRONMENT: Development
-            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
-            POSTGRES_HOST: postgres
-            POSTGRES_PORT: 5432
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
-        depends_on:
-            kafka:
-                condition: service_healthy
-            postgres:
-                condition: service_healthy
-        networks:
-            - backend
-
-    consumer3:
-        build:
-            context: ./Consumer
-            dockerfile: Dockerfile
-        container_name: consumer53
-        hostname: consumer53
-        restart: on-failure
-        ports:
-            - "5003:80"
-        environment:
-            ASPNETCORE_ENVIRONMENT: Development
-            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
-            POSTGRES_HOST: postgres
-            POSTGRES_PORT: 5432
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
-        depends_on:
-            kafka:
-                condition: service_healthy
-            postgres:
-                condition: service_healthy
-        networks:
-            - backend
+            - shared
 
 # ------------------------
 # Volumes
 # ------------------------ 
 volumes:
-    pgdata:
-        driver: local
+  postgres_data:
+  cassandra_data:
+  zookeeper_data:
+  zookeeper_logs:
+  kafka_data:
 
 # ------------------------
 # Networks
 # ------------------------ 
 networks:
-    backend:
+    shared:
         driver: bridge
+        name: shared-network

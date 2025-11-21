@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Consumer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251026151531_AddFailedMessages")]
-    partial class AddFailedMessages
+    [Migration("20251121140118_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -87,12 +87,12 @@ namespace Consumer.Migrations
 
             modelBuilder.Entity("Consumer.Data.Models.Order", b =>
                 {
-                    b.Property<int>("OrderId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("order_id");
+                        .HasColumnName("id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("numeric")
@@ -110,6 +110,10 @@ namespace Consumer.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("offset");
 
+                    b.Property<string>("OrderId")
+                        .HasColumnType("text")
+                        .HasColumnName("order_id");
+
                     b.Property<int>("Partition")
                         .HasColumnType("integer")
                         .HasColumnName("partition");
@@ -122,7 +126,7 @@ namespace Consumer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("status");
 
-                    b.HasKey("OrderId");
+                    b.HasKey("Id");
 
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("idx_orders_created_at");

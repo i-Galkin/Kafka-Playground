@@ -1,0 +1,56 @@
+﻿# ------------------------
+# Services
+# ------------------------ 
+services:
+    # ------------------------
+    # OrderService
+    # ------------------------
+    order-service1:
+        build:
+            context: ./OrderService
+            dockerfile: Dockerfile
+        container_name: order_service51
+        hostname: order_service51
+        restart: on-failure
+        ports:
+            - "5004:80"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+        networks:
+            - shared
+
+    order-service2:
+        build:
+            context: ./OrderService
+            dockerfile: Dockerfile
+        container_name: order_service52
+        hostname: order_service52
+        restart: on-failure
+        ports:
+            - "5005:80"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+        networks:
+            - shared
+
+    order-service3:
+        build:
+            context: ./OrderService
+            dockerfile: Dockerfile
+        container_name: order_service53
+        hostname: order_service53
+        restart: on-failure
+        ports:
+            - "5006:80"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+        networks:
+            - shared
+
+# ------------------------
+# Networks
+# ------------------------ 
+networks:
+    shared:
+        external: true
+        name: shared-network

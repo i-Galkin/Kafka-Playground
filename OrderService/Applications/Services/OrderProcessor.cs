@@ -1,31 +1,29 @@
 ﻿using Confluent.Kafka;
-using Microsoft.EntityFrameworkCore;
 using OrderService.Applications.Services.Interfaces;
 using OrderService.Applications.Validators.Interfaces;
-using OrderService.Data.Postgres;
+using OrderService.Data.Interfaces;
 using OrderService.Domain.Enums;
 using OrderService.Domain.Messages;
 using OrderService.Domain.Models;
-using OrderService.Infrastructure.Database;
 using OrderService.Infrastructure.Kafka.Interfaces;
 
 namespace OrderService.Applications.Services
 {
     public class OrderProcessor : IOrderProcessor
     {
-        private readonly AppDbContext _dbContext;
         private readonly IRetryManager _retryPolicy;
         private readonly IDeadLetterQueue _deadLetterQueue;
         private readonly ILogger<OrderProcessor> _logger;
         private readonly IOrderValidator _orderValidator;
+        private readonly IOrderRepository _orderRepository;
 
-        public OrderProcessor(AppDbContext dbContext, IRetryManager retryPolicy, IDeadLetterQueue deadLetterQueue, ILogger<OrderProcessor> logger, IOrderValidator orderValidator)
+        public OrderProcessor(IRetryManager retryPolicy, IDeadLetterQueue deadLetterQueue, ILogger<OrderProcessor> logger, IOrderValidator orderValidator, IOrderRepository orderRepository)
         {
-            _dbContext = dbContext;
             _retryPolicy = retryPolicy;
             _deadLetterQueue = deadLetterQueue;
             _logger = logger;
             _orderValidator = orderValidator;
+            _orderRepository = orderRepository;
         }
 
         public async Task ProcessAsync(ConsumeResult<string, OrderMessage> message, CancellationToken cancellationToken = default)
@@ -41,14 +39,6 @@ namespace OrderService.Applications.Services
                 {
                     _orderValidator.Validate(orderMessage);
 
-                    var existingOrder = await _dbContext.Orders.FirstOrDefaultAsync(o => o.OrderId == orderMessage.OrderId, cancellationToken);
-
-                    if (existingOrder != null)
-                    {
-                        _logger.LogWarning("Order #{OrderId} already exists, skipping", orderMessage.OrderId);
-                        return true;
-                    }
-
                     var order = new Order
                     {
                         OrderId = orderMessage.OrderId,
@@ -61,8 +51,7 @@ namespace OrderService.Applications.Services
                         Offset = message.Offset.Value
                     };
 
-                    _dbContext.Orders.Add(order);
-                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await _orderRepository.Upsert(order, cancellationToken);
 
                     _logger.LogInformation("Order #{OrderId} saved successfully", order.OrderId);
 

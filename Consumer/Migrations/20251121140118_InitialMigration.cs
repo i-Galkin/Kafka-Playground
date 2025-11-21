@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Consumer.Migrations
 {
     /// <inheritdoc />
-    public partial class AddFailedMessages : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -34,6 +34,26 @@ namespace Consumer.Migrations
                     table.PrimaryKey("PK_failed_order_messages", x => x.id);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "orders",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    order_id = table.Column<string>(type: "text", nullable: true),
+                    customer_id = table.Column<string>(type: "text", nullable: true),
+                    amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    status = table.Column<string>(type: "text", nullable: true),
+                    processed_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    partition = table.Column<int>(type: "integer", nullable: false),
+                    offset = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_orders", x => x.id);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "idx_failed_orders_messages_failed_at",
                 table: "failed_order_messages",
@@ -43,6 +63,16 @@ namespace Consumer.Migrations
                 name: "idx_failed_orders_messages_topic_partition_offset",
                 table: "failed_order_messages",
                 columns: new[] { "topic", "partition", "offset" });
+
+            migrationBuilder.CreateIndex(
+                name: "idx_orders_created_at",
+                table: "orders",
+                column: "created_at");
+
+            migrationBuilder.CreateIndex(
+                name: "idx_orders_customer_id",
+                table: "orders",
+                column: "customer_id");
         }
 
         /// <inheritdoc />
@@ -50,6 +80,9 @@ namespace Consumer.Migrations
         {
             migrationBuilder.DropTable(
                 name: "failed_order_messages");
+
+            migrationBuilder.DropTable(
+                name: "orders");
         }
     }
 }

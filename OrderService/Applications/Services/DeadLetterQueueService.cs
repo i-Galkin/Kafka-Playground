@@ -1,22 +1,21 @@
 ﻿using Confluent.Kafka;
 using System.Text.Json;
-using OrderService.Infrastructure.Database;
 using OrderService.Domain.Models;
 using OrderService.Applications.Services.Interfaces;
-using OrderService.Data.Postgres;
+using OrderService.Data.Interfaces;
 
 namespace OrderService.Applications.Services
 {
     public class DeadLetterQueueService : IDeadLetterQueue
     {
-        private readonly AppDbContext _dbContext;
         private readonly ILogger<DeadLetterQueueService> _logger;
         private readonly string _consumerName;
+        private readonly IFailedOrderMessageRepository _failedOrderMessageRepository;
 
-        public DeadLetterQueueService(AppDbContext dbContext, ILogger<DeadLetterQueueService> logger, IHostEnvironment environment)
+        public DeadLetterQueueService(ILogger<DeadLetterQueueService> logger, IHostEnvironment environment, IFailedOrderMessageRepository failedOrderMessageRepository)
         {
-            _dbContext = dbContext;
             _logger = logger;
+            _failedOrderMessageRepository = failedOrderMessageRepository;
             _consumerName = environment.ApplicationName;
         }
 
@@ -39,8 +38,7 @@ namespace OrderService.Applications.Services
                     ConsumerName = _consumerName,
                 };
 
-                _dbContext.FailedOrderMessages.Add(failedMessage);
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                await _failedOrderMessageRepository.Add(failedMessage, cancellationToken);
 
                 _logger.LogWarning("Message sent to DLQ: Topic={Topic}, Partition={Partition}, Offset={Offset}",
                     message.Topic, message.Partition.Value, message.Offset.Value);

@@ -1,0 +1,32 @@
+﻿# ------------------------
+# Services
+# ------------------------ 
+services:
+    # ------------------------
+    # Producer
+    # ------------------------
+    producer:
+        build:
+            context: ./Producer
+            dockerfile: Dockerfile
+        container_name: producer5
+        hostname: producer5
+        restart: on-failure
+        ports:
+            - "5000:80"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+            # Broker address for connection from .NET applications. kafka - Kafka service name in docker-compose
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
+        networks:
+            - shared
+
+# ------------------------
+# Networks
+# ------------------------ 
+networks:
+    shared:
+        external: true
+        name: shared-network
+
+

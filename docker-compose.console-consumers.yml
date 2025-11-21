@@ -1,0 +1,73 @@
+﻿# ------------------------
+# Services
+# ------------------------ 
+services:
+    # ------------------------
+    # Consumers
+    # ------------------------  
+    consumer1:
+        build:
+            context: ./Consumer
+            dockerfile: Dockerfile
+        container_name: consumer51
+        hostname: consumer51
+        restart: on-failure
+        ports:
+            - "5001:80"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
+            POSTGRES_HOST: postgres
+            POSTGRES_PORT: 5432
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+        networks:
+            - shared
+
+    consumer2:
+        build:
+            context: ./Consumer
+            dockerfile: Dockerfile
+        container_name: consumer52
+        hostname: consumer52
+        restart: on-failure
+        ports:
+            - "5002:80"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
+            POSTGRES_HOST: postgres
+            POSTGRES_PORT: 5432
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+        networks:
+            - shared
+
+    consumer3:
+        build:
+            context: ./Consumer
+            dockerfile: Dockerfile
+        container_name: consumer53
+        hostname: consumer53
+        restart: on-failure
+        ports:
+            - "5003:80"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
+            POSTGRES_HOST: postgres
+            POSTGRES_PORT: 5432
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+        networks:
+            - shared
+# ------------------------
+# Networks
+# ------------------------ 
+networks:
+    shared:
+        external: true
+        name: shared-network
