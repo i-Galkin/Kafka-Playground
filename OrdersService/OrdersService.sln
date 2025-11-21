@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrderService", "src\OrderService\OrderService.csproj", "{F508DEE6-10CD-4867-B7CD-11655FC070CD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{2B58EF8A-E85F-4582-84E9-5C97A374FC37}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrderService.Tests", "Tests\OrderService.Tests\OrderService.Tests.csproj", "{B21C9CEB-EC04-4FE7-8C78-EADB8615EEC8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F508DEE6-10CD-4867-B7CD-11655FC070CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F508DEE6-10CD-4867-B7CD-11655FC070CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F508DEE6-10CD-4867-B7CD-11655FC070CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F508DEE6-10CD-4867-B7CD-11655FC070CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B21C9CEB-EC04-4FE7-8C78-EADB8615EEC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B21C9CEB-EC04-4FE7-8C78-EADB8615EEC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B21C9CEB-EC04-4FE7-8C78-EADB8615EEC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B21C9CEB-EC04-4FE7-8C78-EADB8615EEC8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B21C9CEB-EC04-4FE7-8C78-EADB8615EEC8} = {2B58EF8A-E85F-4582-84E9-5C97A374FC37}
+	EndGlobalSection
+EndGlobal
