@@ -17,7 +17,7 @@ services:
         environment:
             ASPNETCORE_ENVIRONMENT: Development
             # Broker address for connection from .NET applications. kafka - Kafka service name in docker-compose
-            KAFKA_BOOTSTRAP_SERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
+            KAFKA_BOOTSTRAP_SERVERS: kafka:29092
         networks:
             - shared
 

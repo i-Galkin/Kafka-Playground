@@ -13,9 +13,9 @@ services:
         ports:
             - "5432:5432"
         environment:
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
+            POSTGRES_USER: user
+            POSTGRES_PASSWORD: password
+            POSTGRES_DB: orders_db
         volumes:
             - postgres_data:/var/lib/postgresql/data
         healthcheck:
@@ -35,7 +35,7 @@ services:
         ports:
           - "5050:8081"
         environment:
-            PGWEB_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+            PGWEB_DATABASE_URL: postgres://user:password@postgres:5432/orders_db?sslmode=disable
         depends_on:
           - postgres
         networks:
@@ -99,7 +99,7 @@ services:
         container_name: kafka5
         hostname: kafka5
         ports:
-            - "${EXTERNAL_KAFKA_PORT}:${EXTERNAL_KAFKA_PORT}"
+            - "9092:9092"
         environment:
             # Unique identifier of this broker in the cluster
             KAFKA_BROKER_ID: 1
@@ -108,10 +108,10 @@ services:
             # Define all types of connections (entry points) to kafka: <name:protocol>
             KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INNER:PLAINTEXT,EXTERNAL:PLAINTEXT
             # Which real ports Kafka physically listens for connections on.
-            KAFKA_LISTENERS: INNER://${LISTENER_HOST_ALL}:${INTERNAL_KAFKA_PORT},EXTERNAL://${LISTENER_HOST_ALL}:${EXTERNAL_KAFKA_PORT}
+            KAFKA_LISTENERS: INNER://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
             # Which addresses Kafka reports to clients after connection
             # ${KAFKA_HOST_INTERNAL}:${KAFKA_PORT_INTERNAL} - .net applications will connect here. {KAFKA_ADVERTISED_HOST}:${KAFKA_ADVERTISED_PORT} - from PC (not from network)
-            KAFKA_ADVERTISED_LISTENERS: INNER://${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT},EXTERNAL://${EXTERNAL_KAFKA_HOST}:${EXTERNAL_KAFKA_PORT}
+            KAFKA_ADVERTISED_LISTENERS: INNER://kafka:29092,EXTERNAL://localhost:9092
             # Which listener to use for communication between Kafka brokers (now it's 1, so doesn't matter).
             KAFKA_INTER_BROKER_LISTENER_NAME: INNER
             # Service topic __consumer_offsets stores consumer reading positions. How many replicas of this topic to create.
@@ -122,7 +122,7 @@ services:
             zookeeper:
                 condition: service_healthy
         healthcheck:
-            test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}" ]
+            test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:29092" ]
             interval: 10s
             timeout: 5s
             retries: 5
@@ -143,7 +143,7 @@ services:
             KAFKA_CLUSTERS_0_NAME: local-kafka-cluster
             # Parameter KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS - Kafka broker address
             # Uses internal address: service_name:port, which listens on INNER listener
-            KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: ${INTERNAL_KAFKA_HOST}:${INTERNAL_KAFKA_PORT}
+            KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
         depends_on:
             kafka:
                 condition: service_healthy
