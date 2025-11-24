@@ -1,5 +1,5 @@
 // TODO: Understand the keys
-CREATE TABLE IF NOT EXISTS failed_order_messages (
+CREATE TABLE IF NOT EXISTS order_service_keyspace.failed_order_messages (
     topic text,
     partition int,
     offset bigint,

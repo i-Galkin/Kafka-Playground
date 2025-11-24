@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS orders (
+CREATE TABLE IF NOT EXISTS order_service_keyspace.orders (
     order_id text,
     customer_id text,
     amount decimal,
@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS orders (
     partition int,
     offset bigint,
     PRIMARY KEY (order_id)
-) WITH CLUSTERING ORDER BY (created_at DESC, order_id ASC);
+);
 
 CREATE INDEX IF NOT EXISTS idx_orders_customer_id
-    ON orders (customer_id);
+    ON order_service_keyspace.orders (customer_id);
