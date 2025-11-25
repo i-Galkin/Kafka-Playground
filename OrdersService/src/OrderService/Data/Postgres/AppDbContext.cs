@@ -22,8 +22,11 @@ namespace OrderService.Data.Postgres
 
             modelBuilder.Entity<Order>()
                 .HasIndex(o => o.CustomerId)
-                .IsUnique()
                 .HasDatabaseName("idx_orders_customer_id");
+
+            modelBuilder.Entity<Order>()
+                .HasIndex(o => o.OrderId)
+                .HasDatabaseName("idx_orders_order_id");
 
             modelBuilder.Entity<Order>()
                 .HasIndex(o => o.CreatedAt)

@@ -13,19 +13,25 @@ public class CassandraOrderRepository : IOrderRepository
         _context = context;
     }
 
-    public Task<Order> GetById(int id, CancellationToken cancellationToken)
+    public async Task<Order> GetById(Guid id, CancellationToken cancellationToken)
     {
-        throw new NotSupportedException("Cassandra does not support auto-increment Id");
+        const string cql = "SELECT * FROM orders WHERE id = ?";
+        var order = await _context.Mapper.FirstOrDefaultAsync<Order>(cql, id);
+
+        return order;
     }
 
     public async Task Upsert(Order order, CancellationToken cancellationToken)
     {
         await _context.Mapper.InsertAsync(order);
+
+        var byCustomer = order.ToByCustomer();
+        await _context.Mapper.InsertAsync(byCustomer);
     }
 
     public async Task<Order> GetByOrderId(string orderId, CancellationToken cancellationToken)
     {
-        const string cql = "SELECT * FROM orders WHERE order_id = ? LIMIT 1";
+        const string cql = "SELECT * FROM orders WHERE order_id = ?";
         var order = await _context.Mapper.FirstOrDefaultAsync<Order>(cql, orderId);
 
         return order;
@@ -34,10 +40,13 @@ public class CassandraOrderRepository : IOrderRepository
     // TODO:
     public async Task<List<Order>> GetListByDateRange(DateTime from, DateTime to, CancellationToken cancellationToken)
     {
-        const string cql = "SELECT * FROM orders";
-        var orders = await _context.Mapper.FetchAsync<Order>(cql);
+        const string cql = "SELECT * FROM orders_by_customer";
+        var ordersByCustomer = await _context.Mapper.FetchAsync<OrderByCustomer>(cql);
 
-        return orders.Where(o => o.CreatedAt >= from && o.CreatedAt <= to).ToList();
+        return ordersByCustomer
+            .Where(o => o.CreatedAt >= from && o.CreatedAt <= to)
+            .Select(o => o.ToOrder())
+            .ToList();
     }
 
     public async Task<List<Order>> GetList(CancellationToken cancellationToken)

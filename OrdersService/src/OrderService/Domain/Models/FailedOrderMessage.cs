@@ -14,7 +14,7 @@ namespace OrderService.Domain.Models
         /// </summary>
         [Key]
         [Column("id")]
-        public int Id { get; set; }
+        public required Guid Id { get; set; }
 
         /// <summary>
         /// Kafka Topic

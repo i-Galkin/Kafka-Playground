@@ -24,14 +24,12 @@ public class CassandraFailedOrderMessageRepository : IFailedOrderMessageReposito
         await _context.Mapper.InsertAsync(byTopic);
     }
 
-    public Task<FailedOrderMessage> GetById(int id, CancellationToken cancellationToken)
+    public async Task<FailedOrderMessage> GetById(Guid id, CancellationToken cancellationToken)
     {
-        throw new NotSupportedException("Cassandra does not support auto-increment Id");
-    }
+        const string cql = "SELECT * FROM failed_order_messages WHERE id = ?";
+        var message = await _context.Mapper.FirstOrDefaultAsync<FailedOrderMessage>(cql, id);
 
-    public Task UpdateRetryCount(int id, int newRetryCount, CancellationToken cancellationToken)
-    {
-        throw new NotSupportedException("Cassandra does not support auto-increment Id");
+        return message;
     }
 
     public async Task<List<FailedOrderMessage>> GetByTopic(string topic, CancellationToken cancellationToken)
@@ -45,29 +43,22 @@ public class CassandraFailedOrderMessageRepository : IFailedOrderMessageReposito
 
     public async Task<List<FailedOrderMessage>> GetByConsumerName(string consumerName, CancellationToken cancellationToken)
     {
-        const string cql = "SELECT * FROM failed_messages_by_consumer WHERE consumer_name = ?";
+        const string cql = "SELECT * FROM failed_order_messages_by_consumer WHERE consumer_name = ?";
 
         var messages = await _context.Mapper.FetchAsync<FailedMessageByConsumer>(cql, consumerName);
 
         return messages.Select(m => m.ToFailedOrderMessage()).ToList();
     }
 
-    public async Task<List<FailedOrderMessage>> GetByDateRange(DateTime from, DateTime to, CancellationToken cancellationToken)
+    // TODO
+    public async Task<List<FailedOrderMessage>> GetByDateRange(string consumerName, DateTime from, DateTime to, CancellationToken cancellationToken)
     {
-        const string cql = @"SELECT * FROM failed_order_messages_by_topic WHERE failed_at >= ? AND failed_at <= ? ALLOW FILTERING";
+        const string cql = "SELECT * FROM failed_order_messages_by_consumer WHERE consumer_name = ? AND failed_at >= ? AND failed_at <= ?";
 
-        var failedOrders = await _context.Mapper.FetchAsync<FailedMessageByTopic>(cql, from, to);
+        var failedOrders = await _context.Mapper.FetchAsync<FailedMessageByTopic>(cql, consumerName, from, to);
 
-        return failedOrders.Select(m => m.ToFailedOrderMessage()).ToList();
-    }
-
-    // TODO:
-    public async Task<List<FailedOrderMessage>> GetByRetryCount(int minRetryCount, CancellationToken cancellationToken)
-    {
-        const string cql = @"SELECT * FROM failed_order_messages";
-
-        var allMessages = await _context.Mapper.FetchAsync<FailedOrderMessage>(cql);
-
-        return allMessages.Where(m => m.RetryCount >= minRetryCount).ToList();
+        return failedOrders
+            .Select(m => m.ToFailedOrderMessage())
+            .ToList();
     }
 }

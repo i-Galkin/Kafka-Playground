@@ -6,34 +6,31 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OrderService.Data.Postgres;
-using OrderService.Infrastructure.Database;
 
 #nullable disable
 
-namespace OrderService.Infrastructure.Database.Migrations
+namespace OrderService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251120133607_ExtendFieldsLength")]
-    partial class ExtendFieldsLength
+    [Migration("20251125155949_InitialMigrations")]
+    partial class InitialMigrations
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.10")
+                .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("OrderService.Domain.Models.FailedOrderMessage", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ConsumerName")
                         .HasMaxLength(255)
@@ -94,15 +91,14 @@ namespace OrderService.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("OrderService.Domain.Models.Order", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    b.Property<string>("OrderId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("order_id");
 
                     b.Property<decimal>("Amount")
-                        .HasColumnType("numeric")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
                         .HasColumnName("amount");
 
                     b.Property<DateTime>("CreatedAt")
@@ -118,11 +114,6 @@ namespace OrderService.Infrastructure.Database.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("offset");
 
-                    b.Property<string>("OrderId")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("order_id");
-
                     b.Property<int>("Partition")
                         .HasColumnType("integer")
                         .HasColumnName("partition");
@@ -135,13 +126,16 @@ namespace OrderService.Infrastructure.Database.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("status");
 
-                    b.HasKey("Id");
+                    b.HasKey("OrderId");
 
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("idx_orders_created_at");
 
                     b.HasIndex("CustomerId")
                         .HasDatabaseName("idx_orders_customer_id");
+
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("idx_orders_order_id");
 
                     b.ToTable("orders");
                 });

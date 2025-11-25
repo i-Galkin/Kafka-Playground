@@ -1,13 +1,12 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace OrderService.Infrastructure.Database.Migrations
+namespace OrderService.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialMigrations : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,15 +15,14 @@ namespace OrderService.Infrastructure.Database.Migrations
                 name: "failed_order_messages",
                 columns: table => new
                 {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
                     topic = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     partition = table.Column<int>(type: "integer", nullable: false),
                     offset = table.Column<long>(type: "bigint", nullable: false),
                     key = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    value = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    error_message = table.Column<string>(type: "character varying(2500)", maxLength: 2500, nullable: true),
-                    stack_trace = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    value = table.Column<string>(type: "text", maxLength: 2147483647, nullable: true),
+                    error_message = table.Column<string>(type: "text", maxLength: 2147483647, nullable: true),
+                    stack_trace = table.Column<string>(type: "text", maxLength: 2147483647, nullable: true),
                     retry_count = table.Column<int>(type: "integer", nullable: false),
                     failed_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     consumer_name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true)
@@ -38,11 +36,9 @@ namespace OrderService.Infrastructure.Database.Migrations
                 name: "orders",
                 columns: table => new
                 {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    order_id = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    order_id = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     customer_id = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     status = table.Column<int>(type: "integer", nullable: false),
                     processed_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -51,7 +47,7 @@ namespace OrderService.Infrastructure.Database.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_orders", x => x.id);
+                    table.PrimaryKey("PK_orders", x => x.order_id);
                 });
 
             migrationBuilder.CreateIndex(
@@ -73,6 +69,11 @@ namespace OrderService.Infrastructure.Database.Migrations
                 name: "idx_orders_customer_id",
                 table: "orders",
                 column: "customer_id");
+
+            migrationBuilder.CreateIndex(
+                name: "idx_orders_order_id",
+                table: "orders",
+                column: "order_id");
         }
 
         /// <inheritdoc />

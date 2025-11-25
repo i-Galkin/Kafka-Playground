@@ -114,7 +114,7 @@ public class CassandraOrderProcessorIntegrationTests : IClassFixture<CassandraTe
             CustomerId = "CASS-CUSTOMER-002",
             Amount = 150.00m,
             CreatedAt = DateTime.UtcNow,
-            Status = "Created"
+            Status = "Created",
         };
 
         var firstConsumeResult = CreateConsumeResult(

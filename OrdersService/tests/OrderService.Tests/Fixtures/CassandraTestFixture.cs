@@ -15,7 +15,6 @@ public class CassandraTestFixture : IAsyncLifetime
     {
         var testProjectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
         var cassandraConfigPath = Path.Combine(testProjectRoot, "cassandra.yaml");
-
         if (!File.Exists(cassandraConfigPath))
         {
             throw new FileNotFoundException($"cassandra.yaml not found at '{cassandraConfigPath}'");
@@ -78,28 +77,32 @@ public class CassandraTestFixture : IAsyncLifetime
         await Context.Session.ExecuteAsync(new Cassandra.SimpleStatement(
             """
             CREATE TABLE IF NOT EXISTS orders (
-                order_id text,
-                created_at timestamp,
-                customer_id text,
-                amount decimal,
-                status int,
-                processed_at timestamp,
-                partition int,
-                offset bigint,
-                PRIMARY KEY (order_id, created_at)
-            ) WITH CLUSTERING ORDER BY (created_at DESC)
+                 order_id text,
+                 customer_id text,
+                 amount decimal,
+                 created_at timestamp,
+                 status int,
+                 processed_at timestamp,
+                 partition int,
+                 offset bigint,
+                 PRIMARY KEY (order_id)
+            );
             """
         ));
 
         await Context.Session.ExecuteAsync(new Cassandra.SimpleStatement(
             """
-            CREATE MATERIALIZED VIEW IF NOT EXISTS orders_by_customer AS
-            SELECT * FROM orders
-            WHERE customer_id IS NOT NULL
-              AND order_id IS NOT NULL
-              AND created_at IS NOT NULL
-            PRIMARY KEY (customer_id, created_at, order_id)
-            WITH CLUSTERING ORDER BY (created_at DESC, order_id DESC)
+            CREATE TABLE IF NOT EXISTS orders_by_customer (
+                customer_id text,
+                order_id text,
+                created_at timestamp,
+                amount decimal,
+                status int,
+                processed_at timestamp,
+                partition int,
+                offset bigint,
+                PRIMARY KEY (customer_id, order_id)
+            );
             """
         ));
     }
@@ -109,6 +112,7 @@ public class CassandraTestFixture : IAsyncLifetime
         await Context.Session.ExecuteAsync(new Cassandra.SimpleStatement(
             """
             CREATE TABLE IF NOT EXISTS failed_order_messages (
+                id uuid,
                 topic text,
                 partition int,
                 offset bigint,
@@ -119,17 +123,18 @@ public class CassandraTestFixture : IAsyncLifetime
                 retry_count int,
                 failed_at timestamp,
                 consumer_name text,
-                PRIMARY KEY ((topic, partition), failed_at, offset)
-            ) WITH CLUSTERING ORDER BY (failed_at DESC, offset DESC)
+                PRIMARY KEY (id)
+            );
             """
         ));
 
         await Context.Session.ExecuteAsync(new Cassandra.SimpleStatement(
             """
-            CREATE TABLE IF NOT EXISTS failed_messages_by_consumer (
-                consumer_name text,
-                failed_at timestamp,
+            CREATE TABLE IF NOT EXISTS failed_order_messages_by_consumer (
+                id uuid,
                 topic text,
+                failed_at timestamp,
+                consumer_name text,
                 partition int,
                 offset bigint,
                 key text,
@@ -137,14 +142,15 @@ public class CassandraTestFixture : IAsyncLifetime
                 error_message text,
                 stack_trace text,
                 retry_count int,
-                PRIMARY KEY (consumer_name, failed_at, topic, partition, offset)
-            ) WITH CLUSTERING ORDER BY (failed_at DESC)
+                PRIMARY KEY (consumer_name, failed_at, id)
+            ) WITH CLUSTERING ORDER BY (failed_at DESC, id DESC);
             """
         ));
 
         await Context.Session.ExecuteAsync(new Cassandra.SimpleStatement(
             """
             CREATE TABLE IF NOT EXISTS failed_order_messages_by_topic (
+                id uuid,
                 topic text,
                 failed_at timestamp,
                 consumer_name text,
@@ -155,8 +161,8 @@ public class CassandraTestFixture : IAsyncLifetime
                 error_message text,
                 stack_trace text,
                 retry_count int,
-                PRIMARY KEY (topic, failed_at, consumer_name, partition, offset)
-            ) WITH CLUSTERING ORDER BY (failed_at DESC, consumer_name ASC, partition ASC, offset DESC)
+                PRIMARY KEY (topic, failed_at, id)
+            ) WITH CLUSTERING ORDER BY (failed_at DESC, id DESC);
             """
         ));
     }
@@ -178,7 +184,7 @@ public class CassandraTestFixture : IAsyncLifetime
         await Context.Session.ExecuteAsync(
             new Cassandra.SimpleStatement("TRUNCATE test_keyspace.failed_order_messages"));
         await Context.Session.ExecuteAsync(
-            new Cassandra.SimpleStatement("TRUNCATE test_keyspace.failed_messages_by_consumer"));
+            new Cassandra.SimpleStatement("TRUNCATE test_keyspace.failed_order_messages_by_consumer"));
         await Context.Session.ExecuteAsync(
             new Cassandra.SimpleStatement("TRUNCATE test_keyspace.failed_order_messages_by_topic"));
     }

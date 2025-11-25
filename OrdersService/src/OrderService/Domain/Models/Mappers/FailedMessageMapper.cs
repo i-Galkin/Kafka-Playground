@@ -6,6 +6,7 @@ public static class FailedMessageMapper
     {
         return new FailedMessageByConsumer
         {
+            Id = source.Id,
             ConsumerName = source.ConsumerName,
             FailedAt = source.FailedAt,
             Topic = source.Topic,
@@ -23,6 +24,7 @@ public static class FailedMessageMapper
     {
         return new FailedMessageByTopic
         {
+            Id = source.Id,
             Topic = source.Topic,
             FailedAt = source.FailedAt,
             ConsumerName = source.ConsumerName,
@@ -40,6 +42,7 @@ public static class FailedMessageMapper
     {
         return new FailedOrderMessage
         {
+            Id = source.Id,
             ConsumerName = source.ConsumerName,
             FailedAt = source.FailedAt,
             Topic = source.Topic,
@@ -57,6 +60,7 @@ public static class FailedMessageMapper
     {
         return new FailedOrderMessage
         {
+            Id = source.Id,
             Topic = source.Topic,
             Partition = source.Partition,
             Offset = source.Offset,

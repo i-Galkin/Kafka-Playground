@@ -29,6 +29,7 @@ public class PostgresFailedOrderMessageTests : IClassFixture<PostgresTestFixture
         // Arrange
         var message = new FailedOrderMessage
         {
+            Id = Guid.NewGuid(),
             Topic = "orders-topic",
             Partition = 0,
             Offset = 100,
@@ -60,6 +61,7 @@ public class PostgresFailedOrderMessageTests : IClassFixture<PostgresTestFixture
         {
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = "orders-topic-1",
                 Partition = 0,
                 Offset = 1,
@@ -69,10 +71,12 @@ public class PostgresFailedOrderMessageTests : IClassFixture<PostgresTestFixture
                 StackTrace = "",
                 RetryCount = 1,
                 FailedAt = DateTime.UtcNow,
-                ConsumerName = "consumer-1"
+                ConsumerName = "consumer-1",
             },
+
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = "orders-topic-1",
                 Partition = 0,
                 Offset = 2,
@@ -82,10 +86,11 @@ public class PostgresFailedOrderMessageTests : IClassFixture<PostgresTestFixture
                 StackTrace = "",
                 RetryCount = 2,
                 FailedAt = DateTime.UtcNow,
-                ConsumerName = "consumer-1"
+                ConsumerName = "consumer-1",
             },
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = "orders-topic-2",
                 Partition = 0,
                 Offset = 3,
@@ -95,7 +100,7 @@ public class PostgresFailedOrderMessageTests : IClassFixture<PostgresTestFixture
                 StackTrace = "",
                 RetryCount = 1,
                 FailedAt = DateTime.UtcNow,
-                ConsumerName = "consumer-2"
+                ConsumerName = "consumer-2",
             }
         };
 
@@ -121,6 +126,7 @@ public class PostgresFailedOrderMessageTests : IClassFixture<PostgresTestFixture
         {
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = "test-topic",
                 Partition = 0,
                 Offset = 1,
@@ -134,6 +140,7 @@ public class PostgresFailedOrderMessageTests : IClassFixture<PostgresTestFixture
             },
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = "test-topic",
                 Partition = 0,
                 Offset = 2,
@@ -147,6 +154,7 @@ public class PostgresFailedOrderMessageTests : IClassFixture<PostgresTestFixture
             },
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = "test-topic",
                 Partition = 0,
                 Offset = 3,
@@ -166,7 +174,7 @@ public class PostgresFailedOrderMessageTests : IClassFixture<PostgresTestFixture
         }
 
         // Act
-        var result = await _repository.GetByDateRange(now.AddDays(-1.5), now.AddHours(1), CancellationToken.None);
+        var result = await _repository.GetByDateRange("consumer", now.AddDays(-1.5), now.AddHours(1), CancellationToken.None);
 
         // Assert
         result.Should().HaveCount(2);
@@ -175,99 +183,10 @@ public class PostgresFailedOrderMessageTests : IClassFixture<PostgresTestFixture
     }
 
     [Fact]
-    public async Task GetByRetryCount_ShouldReturnMessagesWithMinRetries()
-    {
-        // Arrange
-        var messages = new[]
-        {
-            new FailedOrderMessage
-            {
-                Topic = "test-topic",
-                Partition = 0,
-                Offset = 1,
-                Key = "KEY-1",
-                Value = "{}",
-                ErrorMessage = "Error",
-                StackTrace = "",
-                RetryCount = 1,
-                FailedAt = DateTime.UtcNow,
-                ConsumerName = "consumer"
-            },
-            new FailedOrderMessage
-            {
-                Topic = "test-topic",
-                Partition = 0,
-                Offset = 2,
-                Key = "KEY-2",
-                Value = "{}",
-                ErrorMessage = "Error",
-                StackTrace = "",
-                RetryCount = 3,
-                FailedAt = DateTime.UtcNow,
-                ConsumerName = "consumer"
-            },
-            new FailedOrderMessage
-            {
-                Topic = "test-topic",
-                Partition = 0,
-                Offset = 3,
-                Key = "KEY-3",
-                Value = "{}",
-                ErrorMessage = "Error",
-                StackTrace = "",
-                RetryCount = 5,
-                FailedAt = DateTime.UtcNow,
-                ConsumerName = "consumer"
-            }
-        };
-
-        foreach (var msg in messages)
-        {
-            await _repository.Add(msg, CancellationToken.None);
-        }
-
-        // Act
-        var result = await _repository.GetByRetryCount(3, CancellationToken.None);
-
-        // Assert
-        result.Should().HaveCount(2);
-        result.Should().OnlyContain(m => m.RetryCount >= 3);
-    }
-
-    [Fact]
-    public async Task UpdateRetryCount_ShouldUpdateExistingMessage()
-    {
-        // Arrange
-        var message = new FailedOrderMessage
-        {
-            Topic = "test-topic",
-            Partition = 0,
-            Offset = 1,
-            Key = "KEY-1",
-            Value = "{}",
-            ErrorMessage = "Error",
-            StackTrace = "",
-            RetryCount = 1,
-            FailedAt = DateTime.UtcNow,
-            ConsumerName = "consumer"
-        };
-
-        await _repository.Add(message, CancellationToken.None);
-
-        // Act
-        await _repository.UpdateRetryCount(message.Id, 5, CancellationToken.None);
-
-        // Assert
-        var updated = await _repository.GetById(message.Id, CancellationToken.None);
-        updated.Should().NotBeNull();
-        updated!.RetryCount.Should().Be(5);
-    }
-
-    [Fact]
     public async Task GetById_ShouldReturnNull_WhenNotFound()
     {
         // Act
-        var result = await _repository.GetById(99999, CancellationToken.None);
+        var result = await _repository.GetById(Guid.NewGuid(), CancellationToken.None);
 
         // Assert
         result.Should().BeNull();

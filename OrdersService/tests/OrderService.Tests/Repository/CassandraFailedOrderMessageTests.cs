@@ -30,6 +30,7 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
         var uniqueTopic = $"test-topic-{Guid.NewGuid()}";
         var message = new FailedOrderMessage
         {
+            Id = Guid.NewGuid(),
             Topic = uniqueTopic,
             Partition = 0,
             Offset = 100,
@@ -52,14 +53,31 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
     }
 
     [Fact]
-    public async Task GetById_ShouldThrowNotSupportedException()
+    public async Task GetById_ShouldReturnMessage()
     {
+        // Arrange
+        var message = new FailedOrderMessage
+        {
+            Id = Guid.NewGuid(),
+            Topic = "test-topic",
+            Partition = 0,
+            Offset = 100,
+            Key = "TEST-KEY",
+            Value = "{}",
+            ErrorMessage = "Test error",
+            StackTrace = "",
+            RetryCount = 1,
+            FailedAt = DateTime.UtcNow,
+            ConsumerName = "test-consumer"
+        };
+        await _repository.Add(message, CancellationToken.None);
+
         // Act
-        var act = async () => await _repository.GetById(1, CancellationToken.None);
+        var result = await _repository.GetById(message.Id, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<NotSupportedException>()
-            .WithMessage("*auto-increment*");
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(message.Id);
     }
 
     [Fact]
@@ -73,6 +91,7 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
         {
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = uniqueTopic1,
                 Partition = 0,
                 Offset = 1,
@@ -86,6 +105,7 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
             },
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = uniqueTopic1,
                 Partition = 1,
                 Offset = 2,
@@ -99,6 +119,7 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
             },
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = uniqueTopic2,
                 Partition = 0,
                 Offset = 3,
@@ -138,6 +159,7 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
         {
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = uniqueTopic,
                 Partition = 0,
                 Offset = 10,
@@ -151,6 +173,7 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
             },
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = uniqueTopic,
                 Partition = 0,
                 Offset = 20,
@@ -164,6 +187,7 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
             },
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = uniqueTopic,
                 Partition = 0,
                 Offset = 30,
@@ -184,6 +208,7 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
 
         // Act
         var result = await _repository.GetByDateRange(
+            "consumer",
             now.AddDays(-3),
             now.AddHours(1),
             CancellationToken.None);
@@ -196,82 +221,6 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
     }
 
     [Fact]
-    public async Task GetByRetryCount_ShouldReturnMessagesWithMinRetries()
-    {
-        // Arrange
-        var uniqueTopic = $"retry-topic-{Guid.NewGuid()}";
-
-        var messages = new[]
-        {
-            new FailedOrderMessage
-            {
-                Topic = uniqueTopic,
-                Partition = 0,
-                Offset = 100,
-                Key = "RETRY-1",
-                Value = "{}",
-                ErrorMessage = "Error",
-                StackTrace = "",
-                RetryCount = 1,
-                FailedAt = DateTime.UtcNow.AddMinutes(-10),
-                ConsumerName = "consumer"
-            },
-            new FailedOrderMessage
-            {
-                Topic = uniqueTopic,
-                Partition = 0,
-                Offset = 200,
-                Key = "RETRY-2",
-                Value = "{}",
-                ErrorMessage = "Error",
-                StackTrace = "",
-                RetryCount = 3,
-                FailedAt = DateTime.UtcNow.AddMinutes(-9),
-                ConsumerName = "consumer"
-            },
-            new FailedOrderMessage
-            {
-                Topic = uniqueTopic,
-                Partition = 0,
-                Offset = 300,
-                Key = "RETRY-3",
-                Value = "{}",
-                ErrorMessage = "Error",
-                StackTrace = "",
-                RetryCount = 5,
-                FailedAt = DateTime.UtcNow.AddMinutes(-8),
-                ConsumerName = "consumer"
-            }
-        };
-
-        foreach (var msg in messages)
-        {
-            await _repository.Add(msg, CancellationToken.None);
-        }
-
-        // Act
-        var result = await _repository.GetByRetryCount(3, CancellationToken.None);
-
-        // Assert
-        result.Should().HaveCountGreaterOrEqualTo(2);
-        var topicMessages = result.Where(m => m.Topic == uniqueTopic).ToList();
-        topicMessages.Should().OnlyContain(m => m.RetryCount >= 3);
-        topicMessages.Should().Contain(m => m.Offset == 200);
-        topicMessages.Should().Contain(m => m.Offset == 300);
-    }
-
-    [Fact]
-    public async Task UpdateRetryCount_ShouldThrowNotSupportedException()
-    {
-        // Act
-        var act = async () => await _repository.UpdateRetryCount(1, 5, CancellationToken.None);
-
-        // Assert
-        await act.Should().ThrowAsync<NotSupportedException>()
-            .WithMessage("*Cassandra*");
-    }
-
-    [Fact]
     public async Task Add_ShouldHandleMultiplePartitions()
     {
         // Arrange
@@ -281,6 +230,7 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
         {
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = uniqueTopic,
                 Partition = 0,
                 Offset = 1000,
@@ -294,6 +244,7 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
             },
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = uniqueTopic,
                 Partition = 1,
                 Offset = 2000,
@@ -307,6 +258,7 @@ public class CassandraFailedOrderMessageTests : IClassFixture<CassandraTestFixtu
             },
             new FailedOrderMessage
             {
+                Id = Guid.NewGuid(),
                 Topic = uniqueTopic,
                 Partition = 2,
                 Offset = 3000,

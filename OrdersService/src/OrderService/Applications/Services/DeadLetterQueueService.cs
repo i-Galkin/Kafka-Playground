@@ -26,6 +26,7 @@ namespace OrderService.Applications.Services
             {
                 var failedMessage = new FailedOrderMessage
                 {
+                    Id = Guid.NewGuid(),
                     Topic = message.Topic,
                     Partition = message.Partition.Value,
                     Offset = message.Offset.Value,

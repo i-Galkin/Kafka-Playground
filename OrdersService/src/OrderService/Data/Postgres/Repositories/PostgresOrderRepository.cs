@@ -41,7 +41,7 @@ public class PostgresOrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.OrderId == orderId, cancellationToken);
     }
 
-    public async Task<Order> GetById(int id, CancellationToken cancellationToken)
+    public async Task<Order> GetById(Guid id, CancellationToken cancellationToken)
     {
         return await _context.Orders
             .FindAsync([id], cancellationToken);

@@ -2,6 +2,7 @@ namespace OrderService.Domain.Models;
 
 public class FailedMessageByTopic
 {
+    public Guid Id { get; set; }
     public string Topic { get; set; }
     public DateTime FailedAt { get; set; }
     public string ConsumerName { get; set; }

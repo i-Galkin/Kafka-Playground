@@ -6,7 +6,6 @@ using OrderService.Data.Interfaces;
 using OrderService.Data.Postgres;
 using OrderService.Data.Postgres.Repositories;
 using OrderService.Infrastructure.Configuration.Database;
-using OrderService.Infrastructure.Database;
 
 namespace OrderService.Extensions
 {

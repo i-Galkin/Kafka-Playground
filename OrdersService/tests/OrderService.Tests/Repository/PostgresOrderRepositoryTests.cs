@@ -115,7 +115,7 @@ public class PostgresOrderRepositoryTests : IClassFixture<PostgresTestFixture>, 
     {
         // Arrange
         var now = DateTime.UtcNow;
-        var orders = new[]
+        var orders = new List<Order>()
         {
             new Order { OrderId = "ORDER-004", CustomerId = "CUSTOMER-004", Amount = 10, CreatedAt = now.AddDays(-2), Status = OrderStatus.Processing, Partition = 0, Offset = 1 },
             new Order { OrderId = "ORDER-005", CustomerId = "CUSTOMER-005", Amount = 20, CreatedAt = now.AddDays(-1), Status = OrderStatus.Failed, Partition = 0, Offset = 2 },
@@ -141,7 +141,7 @@ public class PostgresOrderRepositoryTests : IClassFixture<PostgresTestFixture>, 
     {
         // Arrange
         var now = DateTime.UtcNow;
-        var orders = new[]
+        var orders = new List<Order>()
         {
             new Order { OrderId = "ORDER-007", CustomerId = "CUSTOMER-007", Amount = 10, CreatedAt = now.AddDays(-2), Status = OrderStatus.Processing, Partition = 0, Offset = 1 },
             new Order { OrderId = "ORDER-008", CustomerId = "CUSTOMER-008", Amount = 20, CreatedAt = now.AddDays(-1), Status = OrderStatus.Failed, Partition = 0, Offset = 2 },
