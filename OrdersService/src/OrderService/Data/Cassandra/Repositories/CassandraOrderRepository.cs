@@ -19,7 +19,7 @@ public class CassandraOrderRepository : IOrderRepository
 
     public async Task<Order> GetByOrderId(string orderId, CancellationToken cancellationToken)
     {
-        const string cql = "SELECT * FROM orders WHERE order_id = ?";
+        const string cql = "SELECT * FROM orders WHERE order_id = ? LIMIT 1";
         var order = await _context.Mapper.FirstOrDefaultAsync<Order>(cql, orderId);
 
         return order;
@@ -33,7 +33,7 @@ public class CassandraOrderRepository : IOrderRepository
     // TODO: Implement pagination
     public async Task<List<Order>> GetListByDateRange(DateTime from, DateTime to, CancellationToken cancellationToken)
     {
-        const string cql = "SELECT * FROM orders WHERE created_at >= ? AND created_at <= ?";
+        const string cql = "SELECT * FROM orders WHERE created_at >= ? AND created_at <= ? ALLOW FILTERING";
         var orders = await _context.Mapper.FetchAsync<Order>(cql, from, to);
 
         return orders.ToList();
