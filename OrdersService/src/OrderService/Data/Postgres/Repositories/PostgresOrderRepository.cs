@@ -67,4 +67,22 @@ public class PostgresOrderRepository : IOrderRepository
         return await _context.Orders
             .AnyAsync(o => o.OrderId == orderId, cancellationToken);
     }
+
+    // TODO: Add Pagination
+    public async Task<List<Order>> GetByCustomerId(string customerId, CancellationToken cancellationToken)
+    {
+        return await _context.Orders
+            .Where(o => o.CustomerId == customerId)
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    // TODO: Add Pagination
+    public async Task<List<Order>> GetByCustomerIdAndDateRange(string customerId, DateTime from, DateTime to, CancellationToken cancellationToken)
+    {
+        return await _context.Orders
+            .Where(o => o.CustomerId == customerId && o.CreatedAt >= from && o.CreatedAt <= to)
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
 }

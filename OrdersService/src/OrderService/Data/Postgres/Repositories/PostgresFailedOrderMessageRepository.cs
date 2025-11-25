@@ -33,6 +33,14 @@ public class PostgresFailedOrderMessageRepository : IFailedOrderMessageRepositor
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<List<FailedOrderMessage>> GetByConsumerName(string consumerName, CancellationToken cancellationToken)
+    {
+        return await _context.FailedOrderMessages
+            .Where(m => m.ConsumerName == consumerName)
+            .OrderByDescending(m => m.FailedAt)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<List<FailedOrderMessage>> GetByDateRange(DateTime from, DateTime to, CancellationToken cancellationToken)
     {
         return await _context.FailedOrderMessages

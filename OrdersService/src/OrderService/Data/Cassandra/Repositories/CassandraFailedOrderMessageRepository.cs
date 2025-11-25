@@ -1,5 +1,6 @@
 ﻿using OrderService.Data.Interfaces;
 using OrderService.Domain.Models;
+using OrderService.Domain.Models.Mappers;
 
 namespace OrderService.Data.Cassandra.Repositories;
 
@@ -16,39 +17,19 @@ public class CassandraFailedOrderMessageRepository : IFailedOrderMessageReposito
     {
         await _context.Mapper.InsertAsync(message);
 
-        var byConsumer = new FailedMessageByConsumer
-        {
-            ConsumerName = message.ConsumerName,
-            FailedAt = message.FailedAt,
-            Topic = message.Topic,
-            Partition = message.Partition,
-            Offset = message.Offset,
-            Key = message.Key,
-            Value = message.Value,
-            ErrorMessage = message.ErrorMessage,
-            StackTrace = message.StackTrace,
-            RetryCount = message.RetryCount
-        };
+        var byConsumer = message.ToByConsumer();
         await _context.Mapper.InsertAsync(byConsumer);
 
-        // Insert into topic table for queries by topic
-        var byTopic = new FailedMessageByTopic
-        {
-            Topic = message.Topic,
-            FailedAt = message.FailedAt,
-            ConsumerName = message.ConsumerName,
-            Partition = message.Partition,
-            Offset = message.Offset,
-            Key = message.Key,
-            Value = message.Value,
-            ErrorMessage = message.ErrorMessage,
-            StackTrace = message.StackTrace,
-            RetryCount = message.RetryCount
-        };
+        var byTopic = message.ToByTopic();
         await _context.Mapper.InsertAsync(byTopic);
     }
 
     public Task<FailedOrderMessage> GetById(int id, CancellationToken cancellationToken)
+    {
+        throw new NotSupportedException("Cassandra does not support auto-increment Id");
+    }
+
+    public Task UpdateRetryCount(int id, int newRetryCount, CancellationToken cancellationToken)
     {
         throw new NotSupportedException("Cassandra does not support auto-increment Id");
     }
@@ -59,19 +40,16 @@ public class CassandraFailedOrderMessageRepository : IFailedOrderMessageReposito
 
         var messages = await _context.Mapper.FetchAsync<FailedMessageByTopic>(cql, topic);
 
-        return messages.Select(m => new FailedOrderMessage
-        {
-            Topic = m.Topic,
-            Partition = m.Partition,
-            Offset = m.Offset,
-            Key = m.Key,
-            Value = m.Value,
-            ErrorMessage = m.ErrorMessage,
-            StackTrace = m.StackTrace,
-            RetryCount = m.RetryCount,
-            FailedAt = m.FailedAt,
-            ConsumerName = m.ConsumerName
-        }).ToList();
+        return messages.Select(m => m.ToFailedOrderMessage()).ToList();
+    }
+
+    public async Task<List<FailedOrderMessage>> GetByConsumerName(string consumerName, CancellationToken cancellationToken)
+    {
+        const string cql = "SELECT * FROM failed_messages_by_consumer WHERE consumer_name = ?";
+
+        var messages = await _context.Mapper.FetchAsync<FailedMessageByConsumer>(cql, consumerName);
+
+        return messages.Select(m => m.ToFailedOrderMessage()).ToList();
     }
 
     public async Task<List<FailedOrderMessage>> GetByDateRange(DateTime from, DateTime to, CancellationToken cancellationToken)
@@ -80,44 +58,16 @@ public class CassandraFailedOrderMessageRepository : IFailedOrderMessageReposito
 
         var failedOrders = await _context.Mapper.FetchAsync<FailedMessageByTopic>(cql, from, to);
 
-        return failedOrders.Select(m => new FailedOrderMessage
-        {
-            Topic = m.Topic,
-            Partition = m.Partition,
-            Offset = m.Offset,
-            Key = m.Key,
-            Value = m.Value,
-            ErrorMessage = m.ErrorMessage,
-            StackTrace = m.StackTrace,
-            RetryCount = m.RetryCount,
-            FailedAt = m.FailedAt,
-            ConsumerName = m.ConsumerName
-        }).ToList();
+        return failedOrders.Select(m => m.ToFailedOrderMessage()).ToList();
     }
 
+    // TODO:
     public async Task<List<FailedOrderMessage>> GetByRetryCount(int minRetryCount, CancellationToken cancellationToken)
     {
-        const string cql = @"SELECT * FROM failed_order_messages_by_topic WHERE retry_count >= ? ALLOW FILTERING";
+        const string cql = @"SELECT * FROM failed_order_messages";
 
-        var failedOrders = await _context.Mapper.FetchAsync<FailedMessageByTopic>(cql, minRetryCount);
+        var allMessages = await _context.Mapper.FetchAsync<FailedOrderMessage>(cql);
 
-        return failedOrders.Select(m => new FailedOrderMessage
-        {
-            Topic = m.Topic,
-            Partition = m.Partition,
-            Offset = m.Offset,
-            Key = m.Key,
-            Value = m.Value,
-            ErrorMessage = m.ErrorMessage,
-            StackTrace = m.StackTrace,
-            RetryCount = m.RetryCount,
-            FailedAt = m.FailedAt,
-            ConsumerName = m.ConsumerName
-        }).ToList();
-    }
-
-    public Task UpdateRetryCount(int id, int newRetryCount, CancellationToken cancellationToken)
-    {
-        throw new NotSupportedException("Cassandra does not support auto-increment Id");
+        return allMessages.Where(m => m.RetryCount >= minRetryCount).ToList();
     }
 }
