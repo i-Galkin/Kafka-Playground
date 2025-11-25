@@ -31,6 +31,8 @@ public class CassandraContext : IDisposable
             .WithDefaultKeyspace(cassandraSettings.Keyspace)
             .WithCredentials(cassandraSettings.Username, cassandraSettings.Password)
             .WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy(cassandraSettings.LocalDatacenter))
+            .WithQueryOptions(new QueryOptions()
+                .SetConsistencyLevel(ConsistencyLevel.LocalQuorum))
             .Build();
 
         _session = _cluster.Connect(cassandraSettings.Keyspace);
